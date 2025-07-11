@@ -1,0 +1,29 @@
+# Streamlit uchun (agar frontendda ishlatilsa)
+streamlit
+
+# STT (speech-to-text)
+faster-whisper
+openai-whisper
+vosk
+
+# TTS (text-to-speech)
+gtts
+
+# Audio ishlov berish
+sounddevice
+pyaudio
+pydub
+ffmpeg-python
+scipy
+numpy
+soundfile
+
+# Server (API orqali)
+fastapi
+uvicorn
+
+# Tashqi xizmatlarga so‘rovlar
+requests
+
+# Atrof-muhit o‘zgaruvchilarini boshqarish
+python-dotenv
