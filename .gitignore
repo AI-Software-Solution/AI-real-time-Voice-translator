@@ -23,6 +23,5 @@ TestResults.xml
 env
 venv
 __pycache__
-
 .env
 
