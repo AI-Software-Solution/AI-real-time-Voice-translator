@@ -2,8 +2,8 @@ import whisper
 import tempfile
 import os
 
-# Modelni bir marta yuklab qo'yamiz
-model = whisper.load_model("large")  # yoki "base", "medium", "large"
+# Modelni GPU da yuklaymiz
+model = whisper.load_model("medium", device="cuda")  # 🔥 GPU da ishlaydi
 
 def whisper_stt(audio_bytes: bytes, lang: str = "en") -> str:
     """
