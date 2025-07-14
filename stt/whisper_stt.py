@@ -1,23 +1,28 @@
 import whisper
 import tempfile
 import os
+import torch
 
-# Modelni GPU da yuklaymiz
-model = whisper.load_model("medium", device="cuda")  # 🔥 GPU da ishlaydi
+# 🔥 Modelni GPUda majburiy yuklaymiz
+model = whisper.load_model("base")  # yoki "medium"
+model = model.to("cuda")
+print("CUDA mavjud:", torch.cuda.is_available())
+print("Model qaysi device da:", next(model.parameters()).device)
 
 def whisper_stt(audio_bytes: bytes, lang: str = "en") -> str:
     """
-    audio_bytes -> Whisper STT model orqali matn qaytaradi.
-    :param audio_bytes: WAV formatdagi audio baytlar
-    :param lang: til kodi (masalan, 'en', 'ru', 'de') yoki 'auto'
-    :return: transkriptsiya qilingan matn
+    GPU-da ishlovchi Whisper STT
     """
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_audio:
         temp_audio.write(audio_bytes)
         temp_audio_path = temp_audio.name
 
     try:
-        result = model.transcribe(temp_audio_path, language=None if lang == "auto" else lang)
+        result = model.transcribe(
+            temp_audio_path,
+            language=None if lang == "auto" else lang,
+            fp16=True  # <-- GPU'ni to‘liq ishga soladi
+        )
         return result.get("text", "").strip()
     except Exception as e:
         return f"[Whisper xato]: {e}"

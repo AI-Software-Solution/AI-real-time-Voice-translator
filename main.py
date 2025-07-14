@@ -7,6 +7,8 @@ from tts.gtts_tts import gtts_tts
 import base64
 import logging
 
+SUPPORTED_LANGS = ["uz", "en", "ru", "fr", "de", "zh", "ja", "ko", "es", "pt", "mn"]
+
 app = FastAPI()
 logging.basicConfig(level=logging.INFO)
 
@@ -18,11 +20,11 @@ async def websocket_stt(websocket: WebSocket):
     try:
         while True:
             data = await websocket.receive_json()
-            lang = data.get("lang")  # ❌ default yo‘q
+            lang = data.get("lang")
             audio_b64 = data.get("audio", "")
 
-            if not lang:
-                await websocket.send_json({"error": "Til (lang) belgilanmagan"})
+            if not lang or lang not in SUPPORTED_LANGS:
+                await websocket.send_json({"error": f"Til (lang='{lang}') qo‘llab-quvvatlanmaydi"})
                 continue
 
             if not audio_b64:
@@ -77,6 +79,7 @@ async def websocket_translate(websocket: WebSocket):
     except WebSocketDisconnect:
         logging.warning("🔌 Translate WebSocket uzildi")
 
+
 # --- TTS (Matndan ovozga) ---
 @app.websocket("/ws/tts")
 async def websocket_tts(websocket: WebSocket):
@@ -90,6 +93,10 @@ async def websocket_tts(websocket: WebSocket):
 
             if not text.strip():
                 await websocket.send_json({"error": "Bo‘sh matn yuborildi"})
+                continue
+
+            if lang not in SUPPORTED_LANGS:
+                await websocket.send_json({"error": f"TTS uchun til '{lang}' qo‘llab-quvvatlanmaydi"})
                 continue
 
             try:
