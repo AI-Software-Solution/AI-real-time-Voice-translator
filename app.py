@@ -104,4 +104,46 @@ if st.button("🎤 Gapirishni boshlash"):
         except Exception as e:
             st.error(f"❌ Aloqa xatosi: {e}")
 
+        
+
     asyncio.run(process_translation())
+st.markdown("---")
+st.header("📤 Matndan tarjima va ovoz")
+
+with st.form("translate_text_form"):
+    input_text = st.text_area("✍️ Matnni kiriting", "")
+    source_text_lang_name = st.selectbox("Manba tili", list(languages.keys()), index=0, key="source_text")
+    target_text_lang_name = st.selectbox("Maqsad tili", list(languages.keys()), index=1, key="target_text")
+    submitted = st.form_submit_button("Tarjima va ovoz chiqarish")
+
+if submitted:
+    source_text_lang = languages[source_text_lang_name]
+    target_text_lang = languages[target_text_lang_name]
+
+    with st.spinner("⏳ Tarjima qilinmoqda va ovozga aylantirilmoqda..."):
+        try:
+            import requests
+
+            response = requests.post(
+                "http://localhost:8001/translate-tts",  # API endpoint
+                json={
+                    "text": input_text,
+                    "source": source_text_lang,
+                    "target": target_text_lang
+                },
+                timeout=10
+            )
+
+            if response.status_code != 200:
+                st.error(f"❌ Xatolik: {response.json().get('detail')}")
+            else:
+                result = response.json()
+                st.subheader("🌍 Tarjima:")
+                st.write(result["translation"])
+
+                audio_data = base64.b64decode(result["audio"])
+                st.subheader("🔊 Ovoz:")
+                st.audio(audio_data, format="audio/wav")
+
+        except Exception as e:
+            st.error(f"❌ So‘rov xatosi: {e}")

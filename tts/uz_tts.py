@@ -1,16 +1,15 @@
-import requests
-from stt.auth_tokens import token_manager
-import os 
-from dotenv import load_dotenv
-load_dotenv()
-base_url=os.getenv("tts_url")
+import edge_tts
+import asyncio
 
+async def uz_tts(text: str) -> bytes:
+    communicate = edge_tts.Communicate(text, voice="uz-UZ-SardorNeural")
+    audio_fp = b""
+    async for chunk in communicate.stream():
+        if chunk["type"] == "audio":
+            audio_fp += chunk["data"]
+    return audio_fp
 
-def uz_tts(text: str) -> bytes:
-    token = token_manager.get_token()
-    url = ""
-    headers = {"Authorization": f"JWT {token}"}
-    data = {"text": text, "version": "1"}
-    response = requests.post(url, headers=headers, data=data)
-    response.raise_for_status()
-    return response.content
+# Sinov uchun:
+# audio = asyncio.run(uz_tts("Salom, dunyo!"))
+# with open("output.mp3", "wb") as f: f.write(audio)
+
