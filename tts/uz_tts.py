@@ -1,13 +1,13 @@
 import edge_tts
-import asyncio
 
-async def uz_tts(text: str) -> bytes:
-    communicate = edge_tts.Communicate(text, voice="uz-UZ-SardorNeural")
-    audio_fp = b""
+async def tts_edge(text: str, lang: str = "uz-UZ-SardorNeural") -> bytes:
+    communicate = edge_tts.Communicate(text, voice=lang)
+    audio_data = b""
     async for chunk in communicate.stream():
         if chunk["type"] == "audio":
-            audio_fp += chunk["data"]
-    return audio_fp
+            audio_data += chunk["data"]
+    return audio_data
+
 
 # Sinov uchun:
 # audio = asyncio.run(uz_tts("Salom, dunyo!"))

@@ -27,3 +27,9 @@ requests
 
 # Atrof-muhit o‘zgaruvchilarini boshqarish
 python-dotenv
+
+openai==0.28
+
+gtts
+edge_tts
+# boshqa kerakli kutubxonalarni ham qo‘shing

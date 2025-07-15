@@ -1,12 +1,18 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect,HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from stt.uz_stt import uz_stt
 from stt.whisper_stt import whisper_stt
 from translator.translator import translate
-from tts.uz_tts import uz_tts
+from fastapi import File, UploadFile, Form
+from fastapi.responses import JSONResponse
+from tts.uz_tts import tts_edge
 from tts.gtts_tts import gtts_tts
 import base64
 import logging
 from pydantic import BaseModel
+from fastapi import Body
+from fastapi.responses import StreamingResponse
+import io
 
 # Qo‘llab-quvvatlanadigan tillar
 SUPPORTED_LANGS = {
@@ -20,16 +26,31 @@ SUPPORTED_LANGS = {
     "ko": "🇰🇷 Korean",
     "es": "🇪🇸 Spanish",
     "pt": "🇵🇹 Portuguese",
-    "mn": "🇲🇳 Mongolian"
+    # "mn": "🇲🇳 Mongolian"
 }
 
 app = FastAPI()
 logging.basicConfig(level=logging.INFO)
 
+# CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:8501","http://localhost:8501/"],  # xavfsizlik uchun kerakli domenlarni yozing
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 class TranslateTTSRequest(BaseModel):
     text: str
     source: str
     target: str
+
+
+
+class TTSRequest(BaseModel):
+    text: str
+    lang: str
 
 # --- STT (Ovozdan matnga) ---
 @app.websocket("/ws/stt")
@@ -124,9 +145,9 @@ async def websocket_tts(websocket: WebSocket):
 
             try:
                 if lang == "uz":
-                    audio_bytes = await uz_tts(text)
+                    audio_bytes = await tts_edge(text)
                 else:
-                    audio_bytes = await gtts_tts(text, lang)
+                    audio_bytes =  gtts_tts(text, lang)
                 audio_b64 = base64.b64encode(audio_bytes).decode("utf-8")
                 await websocket.send_json({"audio": audio_b64})
             except Exception as e:
@@ -153,9 +174,9 @@ async def translate_and_tts(req: TranslateTTSRequest):
 
         # TTS: O'zbek tili uchun uz_tts, boshqa tillar uchun gtts_tts
         if req.target == "uz":
-            audio_bytes = await uz_tts(translated)
+            audio_bytes = await tts_edge(translated)
         else:
-            audio_bytes = await gtts_tts(translated, req.target)
+            audio_bytes = gtts_tts(translated, req.target)  # <-- await olib tashlandi
         audio_b64 = base64.b64encode(audio_bytes).decode("utf-8")
 
         return {
@@ -165,3 +186,42 @@ async def translate_and_tts(req: TranslateTTSRequest):
     except Exception as e:
         logging.exception("❌ Xatolik")
         raise HTTPException(status_code=500, detail=f"Xatolik: {str(e)}")
+    
+
+@app.post("/tts-uz")
+async def tts_endpoint(req: TTSRequest):
+    """Oddiy TTS endpoint: matn -> audio"""
+    if req.lang not in SUPPORTED_LANGS:
+        raise HTTPException(status_code=400, detail=f"Til {req.lang} qo‘llab-quvvatlanmaydi")
+    if not req.text.strip():
+        raise HTTPException(status_code=400, detail="Bo‘sh matn yuborildi")
+
+    try:
+        if req.lang == "uz":
+            audio_bytes = await tts_edge(req.text)  # async
+        else:
+            audio_bytes = gtts_tts(req.text, req.lang)  # sync
+        # audio_b64 = base64.b64encode(audio_bytes).decode("utf-8")
+        return StreamingResponse(io.BytesIO(audio_bytes), media_type="audio/wav")
+        # return {"audio": audio_b64}
+    except Exception as e:
+        logging.exception("❌ TTS xatosi")
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@app.post("/stt-uz")
+async def stt_endpoint(lang: str = Form(...), audio: UploadFile = File(...)):
+    """Oddiy STT endpoint: audio -> matn"""
+    if lang not in SUPPORTED_LANGS:
+        return JSONResponse(status_code=400, content={"error": f"Til {lang} qo‘llab-quvvatlanmaydi"})
+
+    try:
+        audio_bytes = await audio.read()
+        # O'zbek bo'lsa uz_stt(), boshqa tillar uchun whisper_stt()
+        text = uz_stt(audio_bytes) if lang == "uz" else whisper_stt(audio_bytes, lang)
+
+        if not text.strip():
+            return JSONResponse(status_code=400, content={"error": "Matn topilmadi"})
+        return {"text": text}
+    except Exception as e:
+        logging.exception("❌ STT xatosi")
+        return JSONResponse(status_code=500, content={"error": str(e)})
