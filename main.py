@@ -35,7 +35,8 @@ logging.basicConfig(level=logging.INFO)
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8501","http://localhost:8501/"],  # xavfsizlik uchun kerakli domenlarni yozing
+    allow_origins=["http://localhost:3000","http://localhost:8501","http://192.168.100.132:3000"],  # xavfsizlik uchun kerakli domenlarni yozing
+    # cors_allowed_all_origins=True,  # yoki kerakli domenlar
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
