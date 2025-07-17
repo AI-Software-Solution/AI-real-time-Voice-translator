@@ -51,7 +51,7 @@ if st.button("🎤 Gapirishni boshlash"):
     async def process_translation():
         try:
             # --- 1. STT ---
-            async with websockets.connect("ws://192.168.100.67:8001/ws/stt") as ws_stt:
+            async with websockets.connect("wss://fastapi.ilmiy1.uz/ws/stt") as ws_stt:
                 await ws_stt.send(json.dumps({"lang": source_lang, "audio": audio_b64}))
                 stt_response = await ws_stt.recv()
                 stt_data = json.loads(stt_response)
@@ -65,7 +65,7 @@ if st.button("🎤 Gapirishni boshlash"):
             st.write(original_text)
 
             # --- 2. Translate ---
-            async with websockets.connect("ws://192.168.100.67:8001/ws/translate") as ws_translate:
+            async with websockets.connect("wss://fastapi.ilmiy1.uz/ws/translate") as ws_translate:
                 await ws_translate.send(json.dumps({
                     "text": original_text,
                     "source": source_lang,
@@ -83,7 +83,7 @@ if st.button("🎤 Gapirishni boshlash"):
             st.write(translated_text)
 
             # --- 3. TTS ---
-            async with websockets.connect("ws://192.168.100.67:8001/ws/tts") as ws_tts:
+            async with websockets.connect("wss://fastapi.ilmiy1.uz/ws/tts") as ws_tts:
                 await ws_tts.send(json.dumps({
                     "text": translated_text,
                     "lang": target_lang
@@ -125,7 +125,7 @@ if submitted:
             import requests
 
             response = requests.post(
-                "http://192.168.100.67:8001/translate-tts",  # API endpoint
+                "https://fastapi.ilmiy1.uz/translate-tts",  # API endpoint
                 json={
                     "text": input_text,
                     "source": source_text_lang,
